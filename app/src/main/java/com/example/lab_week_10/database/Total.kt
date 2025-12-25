@@ -1,25 +1,27 @@
-package com.example.lab_week_10.database
+package com.example.map_lab_week_10.database
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-@Entity(tableName = "total")
-// Every variables declared inside this class counts
-// as declaring a new column inside the table
-data class Total(
-    // @PrimaryKey sets a column into a primary key
-    @PrimaryKey(autoGenerate = true)
-    // @ColumnInfo sets the name of the column
-    @ColumnInfo(name = "id")
-    // The variable name can be different from the column name
-    val id: Long = 0,
+// 1. Buat Data Class baru untuk menampung Value + Date
+data class TotalObject(
+    @ColumnInfo(name = "value")
+    val value: Int,
 
-    @Embedded val total: TotalObject
+    @ColumnInfo(name = "date")
+    val date: String
 )
 
-data class TotalObject(
-    @ColumnInfo(name = "value") val value: Int,
-    @ColumnInfo(name = "date") val date:String
+// 2. Update Entity Total untuk menggunakan @Embedded
+@Entity(tableName = "total")
+data class Total(
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "id")
+    val id: Long = 0,
+
+    // @Embedded akan membongkar TotalObject menjadi kolom 'value' dan 'date' di tabel
+    @Embedded
+    val total: TotalObject
 )

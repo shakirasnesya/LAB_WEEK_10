@@ -1,100 +1,93 @@
-package com.example.lab_week_10
+package com.example.map_lab_week_10
 
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
-import com.example.lab_week_10.database.TotalDatabase
-import com.example.lab_week_10.viewmodels.TotalViewModel
 import androidx.room.Room
-import com.example.lab_week_10.database.Total
-import java.util.Date
-import com.example.lab_week_10.database.TotalObject
-
+import com.example.map_lab_week_10.database.Total
+import com.example.map_lab_week_10.database.TotalDatabase
+import com.example.map_lab_week_10.database.TotalObject
+import com.example.map_lab_week_10.viewmodels.TotalViewModel
+import java.util.Date // Penting: Import Date
 
 class MainActivity : AppCompatActivity() {
-    private val db by lazy { prepareDatabase() }
-    private val viewModel by lazy{
+
+    companion object {
+        const val ID: Long = 1
+    }
+
+    private val viewModel by lazy {
         ViewModelProvider(this)[TotalViewModel::class.java]
     }
-    private var lastUpdateDate: String? = null
+
+    private val db by lazy { prepareDatabase() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
         initializeValueFromDatabase()
         prepareViewModel()
     }
 
-    override fun onStart(){
-        super.onStart()
-        lastUpdateDate?.let { date ->
-            if(date.isNotEmpty()){
-                Toast.makeText(this, date, Toast.LENGTH_LONG).show()
-            }
+    // BONUS: Simpan data + Tanggal saat ini ketika aplikasi Pause
+    override fun onPause() {
+        super.onPause()
+        val currentTotalValue = viewModel.total.value ?: 0
+        val currentDate = Date().toString() // Ambil waktu sekarang
+
+        // Simpan sebagai TotalObject
+        val dataToSave = Total(
+            id = ID,
+            total = TotalObject(currentTotalValue, currentDate)
+        )
+
+        db.totalDao().update(dataToSave)
+    }
+
+    private fun prepareDatabase(): TotalDatabase {
+        return Room.databaseBuilder(
+            applicationContext,
+            TotalDatabase::class.java,
+            "total-database"
+        )
+            .allowMainThreadQueries()
+            .fallbackToDestructiveMigration() // PENTING: Hapus DB lama karena struktur tabel berubah
+            .build()
+    }
+
+    private fun initializeValueFromDatabase() {
+        val totalList = db.totalDao().getTotal(ID)
+
+        if (totalList.isEmpty()) {
+            val initialData = Total(
+                id = ID,
+                total = TotalObject(0, Date().toString())
+            )
+            db.totalDao().insert(initialData)
+        } else {
+            // Data lama ada: Ambil value-nya
+            val savedData = totalList.first()
+            viewModel.setTotal(savedData.total.value) // Perhatikan akses .total.value
+
+            Toast.makeText(this, "Last update: ${savedData.total.date}", Toast.LENGTH_LONG).show()
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-
-        val currentTotalValue = viewModel.total.value ?: 0
-        val currentDateString = Date().toString()
-        val totalObjectToSave = TotalObject(value = currentTotalValue, date = currentDateString)
-
-        db.totalDao().update(Total(ID, total = totalObjectToSave))
-    }
-
-    private fun updateText(total: Int){
-        findViewById<TextView>(R.id.text_total).text =
-            getString(R.string.text_total, total)
-    }
-
-    private fun prepareViewModel(){
-        viewModel.total.observe(this, {
-            updateText(it)
-        })
+    private fun prepareViewModel() {
+        viewModel.total.observe(this) { total ->
+            updateText(total)
+        }
 
         findViewById<Button>(R.id.button_increment).setOnClickListener {
             viewModel.incrementTotal()
         }
     }
 
-    private fun prepareDatabase(): TotalDatabase{
-        return Room.databaseBuilder(
-            applicationContext,
-            TotalDatabase::class.java, "total_database"
-        ).allowMainThreadQueries().build()
-    }
-
-    private fun initializeValueFromDatabase(){
-        val total = db.totalDao().getTotal(ID)
-        if(total.isEmpty()){
-            val initialObject = TotalObject(value = 0, date = "Never")
-            db.totalDao().insert(Total(id = ID, total = initialObject))
-            viewModel.setTotal(0)
-        } else {
-            val firstRecord = total.first()
-            viewModel.setTotal(firstRecord.total.value)
-            lastUpdateDate = firstRecord.total.date
-        }
-    }
-
-
-
-    companion object{
-        const val ID: Long = 1
+    private fun updateText(total: Int) {
+        findViewById<TextView>(R.id.text_total).text = getString(R.string.text_total, total)
     }
 }

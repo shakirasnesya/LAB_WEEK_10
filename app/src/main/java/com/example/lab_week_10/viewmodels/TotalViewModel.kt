@@ -1,22 +1,23 @@
-package com.example.lab_week_10.viewmodels
+package com.example.map_lab_week_10.viewmodels
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 
-class TotalViewModel: ViewModel() {
+class TotalViewModel : ViewModel() {
     private val _total = MutableLiveData<Int>()
     val total: LiveData<Int> = _total
 
-    init{
+    init {
         _total.postValue(0)
     }
-    fun incrementTotal(): Int{
+
+    fun incrementTotal() {
         _total.postValue(_total.value?.plus(1))
-        return _total.value!!
     }
 
-    fun setTotal(newTotal: Int){
+    // TAMBAHKAN FUNGSI INI
+    fun setTotal(newTotal: Int) {
         _total.postValue(newTotal)
     }
 }
